@@ -31,7 +31,8 @@ public:
   PoleNode()
       : Node("pole_node"),
         current_state_(IDLE),
-        frame_count_(0) {
+        frame_count_(0),
+        grab_triggered_(false) {
     // ---- 声明参数 ----
     this->declare_parameter("model_path", "model/pole_detect.onnx");
     this->declare_parameter("serial_port", "/dev/ttyUSB0");
@@ -112,7 +113,8 @@ private:
         RCLCPP_INFO(this->get_logger(), "收到指令 [TRACKING]：开始追踪杆子");
         break;
       case GRAB:
-        RCLCPP_INFO(this->get_logger(), "收到指令 [GRAB]：位置到达");
+        RCLCPP_INFO(this->get_logger(), "收到指令 [GRAB]：位置到达，即将关闭");
+        grab_triggered_ = true;
         break;
       default:
         RCLCPP_WARN(this->get_logger(), "收到未知状态码: %d，回退到 IDLE", msg->data);
@@ -215,6 +217,11 @@ private:
         rclcpp::shutdown();
       }
     }
+
+    if (grab_triggered_) {
+      RCLCPP_INFO(this->get_logger(), "GRAB 完成，关闭节点");
+      rclcpp::shutdown();
+    }
   }
 
   void publish_packet(float distance) {
@@ -239,6 +246,7 @@ private:
   rclcpp::Publisher<std_msgs::msg::UInt8MultiArray>::SharedPtr packet_pub_;
   rclcpp::TimerBase::SharedPtr timer_;
   uint8_t current_state_;
+  bool grab_triggered_;
 
   static constexpr uint16_t pole_code_ = 0x0002;
 

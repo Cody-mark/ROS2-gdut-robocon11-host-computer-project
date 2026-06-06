@@ -31,7 +31,8 @@ public:
   WeaponNode()
       : Node("weapon_node"),
         current_state_(GRIPPER_IDLE),
-        frame_count_(0) {
+        frame_count_(0),
+        grab_triggered_(false) {
     // ---- 声明参数 ----
     this->declare_parameter("model_path", "model/weapon_pickup.onnx");
     this->declare_parameter("serial_port", "/dev/ttyUSB0");
@@ -112,7 +113,8 @@ private:
         RCLCPP_INFO(this->get_logger(), "收到指令 [GRIPPER_TRACKING]：开始视觉追踪武器");
         break;
       case GRIPPER_GRAB:
-        RCLCPP_INFO(this->get_logger(), "收到指令 [GRIPPER_GRAB]：位置到达，执行夹取");
+        RCLCPP_INFO(this->get_logger(), "收到指令 [GRIPPER_GRAB]：位置到达，执行夹取，即将关闭");
+        grab_triggered_ = true;
         break;
       default:
         RCLCPP_WARN(this->get_logger(), "收到未知状态码: %d，回退到 GRIPPER_IDLE", msg->data);
@@ -190,6 +192,11 @@ private:
         rclcpp::shutdown();
       }
     }
+
+    if (grab_triggered_) {
+      RCLCPP_INFO(this->get_logger(), "GRIPPER_GRAB 完成，关闭节点");
+      rclcpp::shutdown();
+    }
   }
 
   void publish_packet(float distance) {
@@ -214,6 +221,7 @@ private:
   rclcpp::Publisher<std_msgs::msg::UInt8MultiArray>::SharedPtr packet_pub_;
   rclcpp::TimerBase::SharedPtr timer_;
   uint8_t current_state_;
+  bool grab_triggered_;
 
   static constexpr uint16_t weapon_code_ = 0x0001;
 
