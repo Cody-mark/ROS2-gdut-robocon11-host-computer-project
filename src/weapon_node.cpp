@@ -28,11 +28,7 @@ public:
     GRIPPER_GRAB      = 2
   };
 
-  WeaponNode()
-      : Node("weapon_node"),
-        current_state_(GRIPPER_IDLE),
-        frame_count_(0),
-        grab_triggered_(false) {
+  WeaponNode(): Node("weapon_node"),current_state_(GRIPPER_IDLE),frame_count_(0),grab_triggered_(false) {
     // ---- 声明参数 ----
     this->declare_parameter("model_path", "model/weapon_pickup.onnx");
     this->declare_parameter("serial_port", "/dev/ttyUSB0");
@@ -42,16 +38,16 @@ public:
     this->declare_parameter("use_serial", true);
 
     // ---- 订阅状态指令话题 ----
-    state_sub_ = this->create_subscription<std_msgs::msg::UInt8>(
-        "/vision/weapon_cmd_state", 10,
-        std::bind(&WeaponNode::state_callback, this, _1));
+    state_sub_ = this->create_subscription<std_msgs::msg::UInt8>("/vision/weapon_cmd_state", 10, 
+                    std::bind(&WeaponNode::state_callback, this, _1));
+                
+    state_sub2_ = this->create_subscription<std_msgs::msg::UInt8>("/vision/weapon_cmd_state_2", 10, 
+                    std::bind(&WeaponNode::state_callback, this, _1));
 
     // ---- 发布距离数据（供其他节点使用） ----
-    distance_pub_ = this->create_publisher<std_msgs::msg::Int16>(
-        "/vision/weapon_distance", 10);
+    distance_pub_ = this->create_publisher<std_msgs::msg::Int16>("/vision/weapon_distance", 10);
 
-    RCLCPP_INFO(this->get_logger(),
-        "武器检测节点已启动，当前 [GRIPPER_IDLE] 状态，等待 /vision/weapon_cmd_state 指令...");
+    RCLCPP_INFO(this->get_logger(),"武器检测节点已启动，当前 [GRIPPER_IDLE] 状态，等待 /vision/weapon_cmd_state 指令...");
   }
 
   bool init() {
@@ -70,16 +66,13 @@ public:
     }
 
     // ---- downlink 发布者 ----
-    packet_pub_ = this->create_publisher<std_msgs::msg::UInt8MultiArray>(
-        "/r2/downlink/packet", 10);
+    packet_pub_ = this->create_publisher<std_msgs::msg::UInt8MultiArray>("/r2/downlink/packet", 10);
     RCLCPP_INFO(this->get_logger(), "downlink 发布者已创建: /r2/downlink/packet");
 
     // ---- 管线 ----
     RCLCPP_INFO(this->get_logger(), "加载模型: %s", model_path.c_str());
-    pipeline_ = std::make_unique<WeaponPipeline>(model_path,
-        std::vector<std::string>{"weapon", "itf"}, 0, 1, conf_thres_);
-    RCLCPP_INFO(this->get_logger(), "模型输入: %dx%d",
-        pipeline_->getDetector().inputW(), pipeline_->getDetector().inputH());
+    pipeline_ = std::make_unique<WeaponPipeline>(model_path, std::vector<std::string>{"weapon", "itf"}, 0, 1, conf_thres_);
+    RCLCPP_INFO(this->get_logger(), "模型输入: %dx%d", pipeline_->getDetector().inputW(), pipeline_->getDetector().inputH());
 
     // ---- 摄像头 ----
     RCLCPP_INFO(this->get_logger(), "打开摄像头 %d...", camera_index);
@@ -217,6 +210,7 @@ private:
 
   // ---- ROS2 ----
   rclcpp::Subscription<std_msgs::msg::UInt8>::SharedPtr state_sub_;
+  rclcpp::Subscription<std_msgs::msg::UInt8>::SharedPtr state_sub2_;
   rclcpp::Publisher<std_msgs::msg::Int16>::SharedPtr distance_pub_;
   rclcpp::Publisher<std_msgs::msg::UInt8MultiArray>::SharedPtr packet_pub_;
   rclcpp::TimerBase::SharedPtr timer_;

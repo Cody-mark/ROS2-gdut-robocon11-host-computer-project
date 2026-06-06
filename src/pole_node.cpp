@@ -46,6 +46,10 @@ public:
         "/vision/pole_cmd_state", 10,
         std::bind(&PoleNode::state_callback, this, _1));
 
+    state_sub2_ = this->create_subscription<std_msgs::msg::UInt8>(
+        "/vision/pole_cmd_state_2", 10,
+        std::bind(&PoleNode::state_callback, this, _1));
+
     // ---- 发布距离数据 ----
     distance_pub_ = this->create_publisher<std_msgs::msg::Int16>(
         "/vision/pole_distance", 10);
@@ -242,6 +246,7 @@ private:
 
   // ---- ROS2 ----
   rclcpp::Subscription<std_msgs::msg::UInt8>::SharedPtr state_sub_;
+  rclcpp::Subscription<std_msgs::msg::UInt8>::SharedPtr state_sub2_;
   rclcpp::Publisher<std_msgs::msg::Int16>::SharedPtr distance_pub_;
   rclcpp::Publisher<std_msgs::msg::UInt8MultiArray>::SharedPtr packet_pub_;
   rclcpp::TimerBase::SharedPtr timer_;
